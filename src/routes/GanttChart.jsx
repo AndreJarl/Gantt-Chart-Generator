@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const GanttChart = () => {
   const { projectId } = useParams();
@@ -7,16 +9,21 @@ const GanttChart = () => {
   const project = location.state?.project;
 
   const [showModal, setShowModal] = useState(false);
-  const [newTask, setNewTask] = useState({ name: '', start: '', end: '' });
+  const [editingTaskId, setEditingTaskId] = useState(null);
+  const [newTask, setNewTask] = useState({
+    name: '',
+    start: '',
+    end: '',
+    dependency: '',
+    percent: '',
+  });
   const [tasks, setTasks] = useState([]);
   const [chartReady, setChartReady] = useState(false);
 
   useEffect(() => {
-    // Load tasks from localStorage for this project
     const savedTasks = JSON.parse(localStorage.getItem(`tasks_${projectId}`)) || [];
     setTasks(savedTasks);
 
-    // Load Google Charts API only once on mount
     window.google.charts.load('current', { packages: ['gantt'] });
     window.google.charts.setOnLoadCallback(() => {
       setChartReady(true);
@@ -24,14 +31,12 @@ const GanttChart = () => {
   }, [projectId]);
 
   useEffect(() => {
-    // Only draw the chart once the chart is ready and tasks have been added
     if (chartReady && tasks.length > 0) {
       drawChart();
     }
-  }, [chartReady, tasks]); // Re-run when tasks change or chart is ready
+  }, [chartReady, tasks]);
 
   const drawChart = () => {
-    // Check if google and visualization are available
     if (typeof window.google === 'undefined' || !window.google.visualization) {
       console.error('Google Charts not loaded');
       return;
@@ -52,7 +57,6 @@ const GanttChart = () => {
     data.addColumn('number', 'Percent Complete');
     data.addColumn('string', 'Dependencies');
 
-    // Convert date strings to Date objects
     const formattedTasks = tasks.map(task => {
       const start = new Date(task[2]);
       const end = new Date(task[3]);
@@ -61,34 +65,147 @@ const GanttChart = () => {
 
     data.addRows(formattedTasks);
 
+    const options = {
+      height: 400,
+      gantt: {
+        labelStyle: {
+          fontName: 'Arial',
+          fontSize: 15,
+          color: '#000',
+        },
+        barHeight: 30,
+        criticalPathEnabled: true,
+        criticalPathStyle: {
+              stroke: '#e64a19',
+              strokeWidth: 2
+            },
+         innerGridTrack: {fill: '#ffedd5'},
+        innerGridDarkTrack: {fill: '#fffbeb'},
+        arrow: {
+          angle: 45,
+          width: 2,
+          color: '#555',
+          radius: 0,
+        },
+      },
+    };
+
     const chart = new window.google.visualization.Gantt(container);
-    chart.draw(data);
+    chart.draw(data, options);
   };
 
   const handleAddTask = () => {
-    const id = (tasks.length).toString();
+    if (newTask.name === '') {
+      alert('Please Enter Task Name');
+      return;
+    }
+    if (newTask.start === '') {
+      alert('Please Enter Start Date');
+      return;
+    }
+    if (newTask.end === '') {
+      alert('Please Enter End Date');
+      return;
+    }
+
     const start = new Date(newTask.start);
     const end = new Date(newTask.end);
-    const newRow = [id, newTask.name, start, end, null, 0, null];
-    const updatedTasks = [...tasks, newRow];
-    setTasks(updatedTasks);
+    const percentComplete = parseInt(newTask.percent, 10) || 0;
 
-    // Save the updated tasks for this project to localStorage
-    localStorage.setItem(`tasks_${projectId}`, JSON.stringify(updatedTasks));
+    if (editingTaskId) {
+      // Editing existing task
+      const updatedTasks = tasks.map(task => {
+        if (task[0] === editingTaskId) {
+          const label = `${task[0]}. ${newTask.name}`;
+          return [task[0], label, start, end, null, percentComplete, newTask.dependency || null];
+        }
+        return task;
+      });
+      setTasks(updatedTasks);
+      localStorage.setItem(`tasks_${projectId}`, JSON.stringify(updatedTasks));
+    } else {
+      // Adding new task
+      const id = (tasks.length + 1).toString();
+      const label = `${id}. ${newTask.name}`;
+      const newRow = [id, label, start, end, null, percentComplete, newTask.dependency || null];
+      const updatedTasks = [...tasks, newRow];
+      setTasks(updatedTasks);
+      localStorage.setItem(`tasks_${projectId}`, JSON.stringify(updatedTasks));
+    }
 
     setShowModal(false);
-    setNewTask({ name: '', start: '', end: '' });
+    setEditingTaskId(null);
+    setNewTask({ name: '', start: '', end: '', dependency: '', percent: '' });
+  };
+
+  const handleEditTask = (taskId) => {
+    const taskToEdit = tasks.find(task => task[0] === taskId);
+    if (!taskToEdit) return;
+    setEditingTaskId(taskId);
+    setNewTask({
+      name: taskToEdit[1].replace(`${taskId}. `, ''),
+      start: new Date(taskToEdit[2]).toISOString().slice(0, 10),
+      end: new Date(taskToEdit[3]).toISOString().slice(0, 10),
+      dependency: taskToEdit[6] || '',
+      percent: taskToEdit[5] ? taskToEdit[5].toString() : '0',
+    });
+    setShowModal(true);
+  };
+
+  const handleDeleteTask = (taskId) => {
+    if (!window.confirm('Are you sure you want to delete this task?')) return;
+    const updatedTasks = tasks.filter(task => task[0] !== taskId);
+    setTasks(updatedTasks);
+    localStorage.setItem(`tasks_${projectId}`, JSON.stringify(updatedTasks));
+  };
+
+  const handleExportPDF = async () => {
+    const chartElement = document.getElementById('gantt_chart');
+    if (!chartElement) return alert('No chart to export!');
+
+    const canvas = await html2canvas(chartElement);
+    const imgData = canvas.toDataURL('image/png');
+
+    const pdfWidth = canvas.width;
+    const pdfHeight = canvas.height + 40;
+
+    const pdf = new jsPDF({
+      orientation: 'landscape',
+      unit: 'px',
+      format: [pdfWidth, pdfHeight],
+    });
+
+    pdf.setFontSize(30);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(project?.name || `Project #${projectId}`, 10, 25);
+
+    pdf.addImage(imgData, 'PNG', 0, 40, canvas.width, canvas.height);
+
+    pdf.save(`${project?.name || 'GanttChart'}_${projectId}.pdf`);
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">
+    <div className='h-screen overflow-y-auto'>
+      <h1 className="text-4xl font-bold mb-4">
         {project?.name || `Project #${projectId}`} - Gantt Chart
       </h1>
 
-      <div className="mb-4">
-        <button onClick={() => setShowModal(true)} className="bg-blue-500 text-white px-4 py-2 rounded">
+      <div className="mb-4 flex gap-2">
+        <button
+          onClick={() => {
+            setEditingTaskId(null);
+            setNewTask({ name: '', start: '', end: '', dependency: '', percent: '' });
+            setShowModal(true);
+          }}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
           Add Task
+        </button>
+        <button
+          onClick={handleExportPDF}
+          className="bg-green-500 text-white px-4 py-2 rounded"
+        >
+          Export PDF
         </button>
       </div>
 
@@ -97,13 +214,35 @@ const GanttChart = () => {
           No tasks available. Please add a task.
         </div>
       ) : (
-        <div id="gantt_chart" style={{ height: 400 }}></div>
+        <>
+          <div id="gantt_chart" style={{ height: 400 }}></div>
+
+          <div className="mt-6 mb-10">
+            <h2 className="text-3xl font-semibold mb-2">Tasks List</h2>
+            <ul>
+              {tasks.map(task => (
+                <li key={task[0]} className="flex justify-between items-center border p-2 mb-2 rounded">
+                  <span>{task[1]}</span>
+                  <div className="flex gap-2">
+                    <button
+                      className="bg-yellow-400 text-black px-3 py-1 rounded"
+                      onClick={() => handleEditTask(task[0])}
+                    >
+                      Edit
+                    </button>
+                    
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
       )}
 
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-6 rounded shadow-md w-96">
-            <h2 className="text-xl mb-4">Add Task</h2>
+            <h2 className="text-xl mb-4">{editingTaskId ? 'Edit Task' : 'Add Task'}</h2>
             <input
               type="text"
               placeholder="Task Name"
@@ -123,6 +262,22 @@ const GanttChart = () => {
               value={newTask.end}
               onChange={e => setNewTask({ ...newTask, end: e.target.value })}
             />
+            <input
+              type="text"
+              placeholder="Dependency Task ID (optional)"
+              className="w-full mb-2 p-2 border"
+              value={newTask.dependency}
+              onChange={e => setNewTask({ ...newTask, dependency: e.target.value })}
+            />
+            <input
+              type="number"
+              placeholder="Percent Complete (0-100)"
+              className="w-full mb-2 p-2 border"
+              value={newTask.percent}
+              onChange={e => setNewTask({ ...newTask, percent: e.target.value })}
+              min={0}
+              max={100}
+            />
             <div className="flex justify-end gap-2">
               <button className="px-4 py-2" onClick={() => setShowModal(false)}>
                 Cancel
@@ -131,7 +286,7 @@ const GanttChart = () => {
                 className="bg-blue-500 text-white px-4 py-2"
                 onClick={handleAddTask}
               >
-                Add
+                {editingTaskId ? 'Save' : 'Add'}
               </button>
             </div>
           </div>

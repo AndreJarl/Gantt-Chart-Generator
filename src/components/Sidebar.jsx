@@ -5,7 +5,7 @@ function Sidebar() {
 
   return (
     <div className="bg-cyan-500 w-80 min-h-screen py-4 px-10 space-y-4">
-      <p className='text-5xl text-white font-bold mb-10 mt-2'>ACSL PLANNER</p>
+      <Link to="/"><p className='text-5xl text-white font-bold mb-10 mt-2'>ACSL PLANNER</p></Link>
 
       <Link
         to="/"
