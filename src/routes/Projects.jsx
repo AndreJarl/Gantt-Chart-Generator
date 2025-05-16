@@ -57,11 +57,11 @@ const Projects = () => {
   };
 
   return (
-    <div className='mt-1 ml-8'>
+    <div className='mt-4 ml-80'>
         <p className='text-7xl mb-9 font-medium text-gray-500'>🗂️ Projects</p>
     <div className="flex gap-4 flex-wrap">
       {/* Create New Project Button */}
-      <div className="border p-4 rounded w-64 flex items-center justify-center hover:shadow">
+      <div className="border p-4 ml-8 rounded w-64 flex items-center justify-center hover:shadow">
         <button onClick={() => setShowModal(true)}>+ Create New Project</button>
       </div>
 

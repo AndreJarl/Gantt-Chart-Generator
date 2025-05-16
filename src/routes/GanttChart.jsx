@@ -84,7 +84,7 @@ const GanttChart = () => {
         arrow: {
           angle: 45,
           width: 2,
-          color: '#555',
+          color: '#e11d48',
           radius: 0,
         },
       },
@@ -185,12 +185,12 @@ const GanttChart = () => {
   };
 
   return (
-    <div className='h-screen overflow-y-auto'>
-      <h1 className="text-4xl font-bold mb-4">
+    <div className='h-screen  ml-80 mt-3 '>
+      <h1 className="text-4xl font-bold mb-4 ml-4">
         {project?.name || `Project #${projectId}`} - Gantt Chart
       </h1>
 
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex gap-2 ml-4">
         <button
           onClick={() => {
             setEditingTaskId(null);
@@ -215,11 +215,11 @@ const GanttChart = () => {
         </div>
       ) : (
         <>
-          <div id="gantt_chart" style={{ height: 400 }}></div>
+          <div className='mx-4' id="gantt_chart" style={{ height: 400,}}></div>
 
-          <div className="mt-6 mb-10">
+          <div className="mx-4">
             <h2 className="text-3xl font-semibold mb-2">Tasks List</h2>
-            <ul>
+            <ul className='pb-5'>
               {tasks.map(task => (
                 <li key={task[0]} className="flex justify-between items-center border p-2 mb-2 rounded">
                   <span>{task[1]}</span>
