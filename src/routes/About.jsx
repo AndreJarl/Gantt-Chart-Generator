@@ -21,13 +21,13 @@ function About() {
   }} className='ml-72 -mt-2 pt-20 h-[550px]  bg-cover bg-center bg-no-repeat text-white flex flex-col
                   items-center gap-10 
         '>
-       <p id='about-p' className='text-7xl ml-24 font-bold text-center'>ACSL GIVEAWAYS AND GENERAL MERCHANDISE</p>
+       <p id='about-p' className='text-7xl ml-24 pt-10 font-bold text-center'>ACSL GIVEAWAYS AND GENERAL MERCHANDISE</p>
         <p className='text-center w-[500px]'>We’re dedicated to quality, sustainability, and on-time delivery. Whether for business giveaways or daily use, we bring your ideas to life with care and craftsmanship.</p>
        
        </div>
-             <div className='w-[100%] h-[500px] ml-[10em] mx-9 flex items-center  bg-cover bg-center bg-no-repeat
+             <div className='w-[100%] h-[500px]  mx-9 flex items-center justify-center bg-cover bg-center bg-no-repeat
         '>
-                <img className='ml-28' width={400} src={logo} alt="" srcset="" />
+                <img className='ml-32' width={400} src={logo} alt="" srcset="" />
                 <div className='flex flex-col gap-10 w-[500px] '>
                 <p>Founded in 2016, ACSL Corporate Giveaways and General Merchandise started as a humble sewing business in a small space in Consolacion, Cebu. With just a few machines and a big vision, we began creating customized products to meet the needs of local clients. </p>
                 <p>Through hard work, quality craftsmanship, and strong client relationships, ACSL has grown into a full-fledged manufacturing facility, now operating in a much larger workspace and serving a wide range of customers across various industries. </p>
